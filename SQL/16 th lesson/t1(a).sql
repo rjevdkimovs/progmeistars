@@ -1,0 +1,8 @@
+DROP VIEW FROM1to9 ;
+CREATE VIEW FROM1to9
+AS SELECT firstname, NAME, grade
+FROM students 
+WHERE GRADE <=9;
+
+SELECT *
+FROM FROM1to9
