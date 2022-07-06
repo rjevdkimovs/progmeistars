@@ -1,0 +1,70 @@
+package main
+
+import (
+	_"fmt"
+	"sync"
+	"time"
+	"math/rand"
+	"github.com/nsf/termbox-go"
+	"os"
+)
+
+type Job struct {
+	x			int
+	from, to 	int
+	color termbox.Attribute
+}
+
+var jobs = make(chan Job, 25)
+var terminated bool
+var width, height int
+
+func worker(wg *sync.WaitGroup) {
+	Delay := [6]time.Duration{10 * time.Millisecond, 20 * time.Millisecond, 40 * time.Millisecond, 80 * time.Millisecond, 160 * time.Millisecond, 320 * time.Millisecond}
+	for job := range jobs {
+		for i := 0; i < job.to; i++  {
+			termbox.SetCell(job.x, i, ' ', termbox.ColorDefault, job.color)
+			time.Sleep(Delay[rand.Intn(6)])
+		}
+	}
+	wg.Done()
+}
+
+func screenUpdate() {
+	for {
+		termbox.Flush()
+	}
+}
+
+func createWorkerPool(noOfWorkers int) {
+	go screenUpdate()
+	var wg sync.WaitGroup
+	for i := 0; i < noOfWorkers; i++ {
+		wg.Add(1)
+		go worker(&wg)
+	}
+	wg.Wait()
+}
+
+func allocate(n int) {
+	for i := 0; i < n; i ++ {
+		job := Job{i, 0, height, termbox.ColorGreen}
+		jobs <- job
+	}
+	close(jobs)
+}
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
+	if err := termbox.Init(); err != nil {
+		os.Exit(1) // Ошибка инициализации termbox
+	}
+	defer termbox.Close()
+	
+	width, height = termbox.Size()
+	
+	go allocate(width)	
+	
+	createWorkerPool(10)  // 20 - number of Workers
+	time.Sleep(1 * time.Second)
+}
